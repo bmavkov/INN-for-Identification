@@ -3,11 +3,13 @@
 This repository contains the Python code to reproduce the results of the paper 
 "Integrated Neural Networks for Nonlinear Continuous-Time System Identification" by Bojan Mavkov, Marco Forgione and Dario Piga.
 
-The main scripts are:
+The file codeThe main scripts are:
 
- *   ````: Symbolic manipulation of the RLC model, constant definition
- * ``RLC_genera.py``:  generate the identification dataset 
- * ``NNmodels.py``: generate 
+ *   `` main_CS``: rund the Cascade Tank example
+ The cascade tank contains the dataset from the  [Cascaded Tanks System]{http://www.nonlinearbenchmark.org/#Tanks}
+ * ``NN_simulations.py``:  simulate the neural networks
+ * ``NNmodels.py``: define  the neural networks 
+ *   ``Norms.py``: contains the ERMS and R2 norms 
 
 
 # Software requirements:
