@@ -14,11 +14,8 @@ The main scripts are:
 Simulations were performed on a Python 3.8 conda environment with
 
  * numpy
- * scipy
  * matplotlib
  * pandas
- * sympy
- * numba
  * pytorch (version 1.5)
  
 These dependencies may be installed through the commands:
