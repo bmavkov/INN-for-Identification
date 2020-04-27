@@ -5,9 +5,7 @@ This repository contains the Python code to reproduce the results of the paper
 
 The file codeThe main scripts are:
 
- *   `` main_CS``: rund the Cascade Tank example. 
- 
- The cascade tank contains the dataset from the  [Cascaded Tanks System](http://www.nonlinearbenchmark.org/#Tanks)
+ *   `` main_CS``: rund the Cascade Tank example. (The cascade tank contains the dataset from the  [Cascaded Tanks System](http://www.nonlinearbenchmark.org/#Tanks))
  * ``NN_simulations.py``:  simulate the neural networks
  * ``NNmodels.py``: define  the neural networks 
  *   ``Norms.py``: contains the ERMS and R2 norms 
