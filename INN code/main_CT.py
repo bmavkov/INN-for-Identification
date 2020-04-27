@@ -35,7 +35,7 @@ if __name__ == '__main__':
     torch.manual_seed(0)
 
     # In[Settings]
-    lr = 1e-5  # learning rate
+    lr = 1e-4  # learning rate
     num_iter = 100000  # gradient-based optimization steps
     test_freq = 100  # print message every test_freq iterations
 

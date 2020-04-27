@@ -18,7 +18,7 @@ import numpy as np
 
 class NeuralStateSpaceModel(nn.Module):
    
-    def __init__(self, n_x, n_u, n_feat=64, init_small=True):
+    def __init__(self, n_x, n_u, n_feat, init_small=False):
         super(NeuralStateSpaceModel, self).__init__()
         self.n_x = n_x
         self.n_u = n_u
