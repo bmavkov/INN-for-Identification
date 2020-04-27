@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Models
-from NNmodels import NeuralStateSpaceModel
-from NNmodels import NeuralStateSpaceModel_y
-from NNmodels import INN
+from NN_models import NeuralStateSpaceModel
+from NN_models import NeuralStateSpaceModel_y
+from NN_models import INN
 
 # Simulation functions
 from NN_simulations import f_onestep
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     # In[Settings]
     lr = 1e-4  # learning rate
-    num_iter = 100000  # gradient-based optimization steps
+    num_iter = 400000  # gradient-based optimization steps
     test_freq = 100  # print message every test_freq iterations
 
     n_feat = [40, 40]  # number of neurons per layer of the state mapping function
