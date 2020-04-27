@@ -1,4 +1,4 @@
-# INN-for-Nonlinear-Continuous-Time-System-Identification
+# Integrated Neural Networks for Nonlinear Continuous-Time System Identification
 
 This repository contains the Python code to reproduce the results of the paper 
 "Integrated Neural Networks for Nonlinear Continuous-Time System Identification" by Bojan Mavkov, Marco Forgione and Dario Piga.
