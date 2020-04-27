@@ -18,7 +18,7 @@ import numpy as np
 
 class NeuralStateSpaceModel(nn.Module):
    
-    def __init__(self, n_x, n_u, n_feat=64):
+    def __init__(self, n_x, n_u, n_feat=64, init_small=True):
         super(NeuralStateSpaceModel, self).__init__()
         self.n_x = n_x
         self.n_u = n_u
@@ -30,6 +30,12 @@ class NeuralStateSpaceModel(nn.Module):
             nn.Sigmoid(),
             nn.Linear(n_feat[1], n_x),
         )
+
+        if init_small:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-4)
+                    nn.init.constant_(m.bias, val=0)
 
     def forward(self, X, U):
         XU = torch.cat((X, U), -1)
@@ -49,7 +55,6 @@ class INN:
         X_hat_I = x0 + DX
 
         return X_hat_I
-
 
 class NeuralStateSpaceModel_y(nn.Module):
    

@@ -5,6 +5,7 @@ Created on Tue Jan 21 14:15:39 2020
 @author: bojan.mavkov
 """
 
+import os
 import torch 
 import torch.optim as optim
 import time
@@ -19,9 +20,9 @@ from NNmodels import NeuralStateSpaceModel_y
 from NNmodels import INN
 
 # Simulation functions
-from NN_simulations import f_sim_os
-from NN_simulations import f_sim_incr
-from NN_simulations import f_sim_y_incr
+from NN_simulations import f_onestep
+from NN_simulations import f_sim
+
 
 # Metrics
 from metrics import metric
@@ -29,18 +30,21 @@ from metrics import metric
 
 if __name__ == '__main__':
 
+    # In[Set seed for reproducibility]
+    np.random.seed(0)
+    torch.manual_seed(0)
+
     # In[Settings]
-    lr = 1e-4  # learning rate
-    num_iter = 400000  # gradient-based optimization steps
+    lr = 1e-5  # learning rate
+    num_iter = 100000  # gradient-based optimization steps
     test_freq = 100  # print message every test_freq iterations
-    add_noise = False  # Add additional noise to the data
 
     n_feat = [40, 40]  # number of neurons per layer of the state mapping function
 
-    fix_om = False  # Fix the output mapping function
+    fix_om = True  # Fix the output mapping function
     n_feat_y = 5  # number of neurons of the output mapping function
 
-    onestep_sim = False  # one-step simulations (Only applicable to the training data)
+    onestep_prediction = False  # one-step simulations
     do_mean = True  # remove the mean values of the data
     save_model = False  # Save the identified model parameters and simulations
 
@@ -50,8 +54,8 @@ if __name__ == '__main__':
 
     # In[Load data]
 
-    data_ident = pd.read_csv('data/dataBenchmark.csv')
-    dt = data_ident[['Ts']].values[0].item()
+    data_ident = pd.read_csv(os.path.join('data', 'dataBenchmark.csv'))
+    dt = data_ident['Ts'][0]
 
     Inputs = data_ident[['uEst']].values.astype(np.float32)
     Outputs = data_ident[['yEst']].values.astype(np.float32)
@@ -59,16 +63,8 @@ if __name__ == '__main__':
     Inputs_val = data_ident[['uVal']].values.astype(np.float32)
     Outputs_val = data_ident[['yVal']].values.astype(np.float32)
 
-    # Number of data
+    # Number of data samples
     N = np.shape(Inputs)[0]
-
-    if add_noise:
-        lvl_out = abs(np.mean(Outputs, axis=0))
-        noise_out = np.random.normal(0, lvl_out, Outputs.shape)
-        lvl_in = abs(np.mean(Inputs, axis=0))
-        noise_in = np.random.normal(0, lvl_in, Inputs.shape)
-        Inputs = Inputs
-        Outputs = Outputs+0.7*noise_out
 
     n_u = Inputs.shape[1]
     Ident_inputs = Inputs
@@ -132,30 +128,29 @@ if __name__ == '__main__':
             {'params': params_y, 'lr': lr}], lr=lr)
 
     # In[Training loop]
-    J_tot = np.zeros((num_iter + 1))
-    J_x = np.zeros((num_iter + 1))
-    J_y = np.zeros((num_iter + 1))
+    J_tot = np.zeros(num_iter)
+    J_x = np.zeros(num_iter)
+    J_y = np.zeros(num_iter)
 
     start_time = time.time()
-    for itr in range(1, num_iter + 1):
+    for itr in range(num_iter):
 
         optimizer.zero_grad()
 
         # Pass X_hat through the INN to obtain X_hat_I
         X_hat_I = INN_model.INN_est(X_hat, U, dt)
 
+        # Obtain Y_hat
         if fix_om:
           Y_hat = X_hat[:, [0]]
         else:
           Y_hat = y_model(X_hat)
 
-        # Compute fit loss
+        # Compute INN loss
         err_x = X_hat_I - X_hat
 
-        if fix_om:
-           err_y = Y_hat - Out_tor
-        else:
-           err_y = Y_hat - Out_tor
+        # Compute fit loss
+        err_y = Y_hat - Out_tor
 
         loss_x = (1/alpha)*torch.mean(err_x**2)*dt
         loss_y = torch.mean(err_y**2)
@@ -169,6 +164,10 @@ if __name__ == '__main__':
         if itr % test_freq == 0:
            print('Iter {:04d} | Total Loss {:.4f} | Loss X {:.4f} | Loss Y {:.4f}'.format(itr, loss.item(), loss_x.item(), loss_y.item()))
 
+        #if itr == 5000:
+        #    optimizer.param_groups[0]['lr'] = 1e-5
+        #    optimizer.param_groups[1]['lr'] = 1e-5
+
         # Optimization step
         loss.backward()
         optimizer.step()
@@ -177,41 +176,29 @@ if __name__ == '__main__':
     print(f"\nTrain time: {train_time:.2f}")
 
     # In[Figures]
-    f1 = plt.figure()
-    plt.plot(Outputs)
-    plt.title('outputs (Training)')
-
-    f2 = plt.figure()
-    plt.plot(Inputs)
-    plt.title('Inputs (Training)')
 
     # Plot the cost functions
     f3 = plt.figure()
-    plt.plot(J_tot, 'k')
-    plt.title('Loss Function')
-
-    f4 = plt.figure()
-    plt.plot(J_x, 'k')
-    plt.title('Loss Jx Function')
-
-    f5 = plt.figure()
-    plt.plot(J_y, 'k')
-    plt.title('Loss Jy Function')
+    plt.plot(J_tot, 'k', label='J')
+    plt.plot(J_x, 'b', label='J_x')
+    plt.plot(J_y, 'r', label='J_y')
+    plt.legend()
 
     # In[Simulate on the training set]
     X0 = X_hat[0, :]
-    if onestep_sim:
-       X_sim = f_sim_os(INN_model.nn_model, X_hat.detach(), U, dt, n_x, X0)
-       y_ss = X_sim[:, 0]
-    else:
-       if fix_om:
-         X_sim = f_sim_incr(INN_model.nn_model, X0, n_x, U, dt)
-         y_ss = X_sim[:, 0]
-         y_ss = np.transpose([y_ss])
-       else:
-         X_sim = f_sim_y_incr(ss_model, X0, n_x, U, dt)
-         y_ss = y_model(X_sim.float())
-         y_ss = y_ss.data.numpy()
+    with torch.no_grad():
+        if onestep_prediction:
+           X_sim = f_onestep(INN_model.nn_model, X_hat.detach(), U, dt, n_x, X0)
+           y_ss = X_sim[:, [0]]
+        else:
+           if fix_om:
+             X_sim = f_sim(INN_model.nn_model, X0, n_x, U, dt)
+             y_ss = X_sim[:, [0]]
+           else:
+             X_sim = f_sim(ss_model, X0, n_x, U, dt)
+             y_ss = y_model(X_sim.float())
+
+    y_ss = y_ss.data.numpy()
 
     # In[De-normalize output]
     if do_mean:
@@ -229,25 +216,23 @@ if __name__ == '__main__':
     leg = f9.legend()
 
     # In[Simulate on the validation set]
-    if fix_om:
-         X_sim_val = f_sim_incr(INN_model.nn_model, X0, n_x, U_val, dt)
-         y_ss_val = X_sim_val[:, 0]
-         y_ss_val = np.transpose([y_ss_val])
-    else:
-         X_sim_val = f_sim_y_incr(INN_model.nn_model, X0, n_x, U_val, dt)
-         y_ss_val = y_model(X_sim_val)
-         y_ss_val = y_ss_val.data.numpy()
+    with torch.no_grad():
+        if fix_om:
+             X_sim_val = f_sim(INN_model.nn_model, X0, n_x, U_val, dt)
+             y_ss_val = X_sim_val[:, [0]]
+        else:
+             X_sim_val = f_sim(INN_model.nn_model, X0, n_x, U_val, dt)
+             y_ss_val = y_model(X_sim_val)
 
+    y_ss_val = y_ss_val.data.numpy()
 
     if do_mean:
-     y_sim_val=(y_ss_val*standard_outputs)+mean_out_train
+     y_sim_val = (y_ss_val*standard_outputs)+mean_out_train
     else:
-     y_sim_val=y_ss_val
+     y_sim_val = y_ss_val
 
     Erms_val = metric(y_sim_val, Outputs_val, 'ERMS')
     print('ERMS validation data: {:.3f}'.format(Erms_val))
-
-
 
     f11 = plt.figure()
     plt.plot(y_sim_val, '-b', label='Output sim')
@@ -262,4 +247,11 @@ if __name__ == '__main__':
         torch.save(mean_out_train, 'mean_out_train_output')
         torch.save(standard_inp, 'standard_inp_output')
         torch.save(standard_outputs, 'standard_outputs_output')
-        sio.savemat('arrdata.mat', mdict={'X_sim_val': X_sim_val,'y_sim_val': y_sim_val,'Outputs_val': Outputs_val,'X_sim_rs': X_sim,'y_sim': y_sim,'Outputs': Outputs,'Erms_val': Erms_val,'Erms_train': Erms_train})
+        sio.savemat('arrdata.mat', mdict={'X_sim_val': X_sim_val,
+                                          'y_sim_val': y_sim_val,
+                                          'Outputs_val': Outputs_val,
+                                          'X_sim_rs': X_sim,
+                                          'y_sim': y_sim,
+                                          'Outputs': Outputs,
+                                          'Erms_val': Erms_val,
+                                          'Erms_train': Erms_train})
