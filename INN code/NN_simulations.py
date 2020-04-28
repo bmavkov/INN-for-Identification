@@ -37,4 +37,3 @@ def f_onestep(ss_model, X, U, dt, n_x, X0):
             X_sim[i,:]=x_sum
     X_sim=X_sim.data.numpy()
     return X_sim
-    
