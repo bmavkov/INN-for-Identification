@@ -39,7 +39,7 @@ add_noise = False # Add aditional noise to the data
 
 n_feat=[40,40,40] # number of neurons per layer of the state mapping function
 
-fix_om=False # Fix the output mapping function
+fix_om=True # Fix the output mapping function
 n_feat_y=5  # number of neurons of the output mapping function 
 
 os=False # one-step simulations (Only applicable to the training data)
